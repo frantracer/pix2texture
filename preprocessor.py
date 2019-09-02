@@ -17,6 +17,8 @@ output_dir = "./notebooks/data/input"
 img_width = 512
 img_height = 512
 canny_sigma = 5
+mean_color_background = True
+color_background = [255, 255, 255]
 
 img_counter = 0
 
@@ -41,6 +43,15 @@ def rescale_image(img, min_width, min_height):
   return img
 
 def preprocess_image(img):
+  if mean_color_background:
+    color_r = np.mean(img[:, :, 0])
+    color_g = np.mean(img[:, :, 1])
+    color_b = np.mean(img[:, :, 2])
+  else:
+    color_r = color_background[0]
+    color_g = color_background[1]
+    color_b = color_background[2]
+
   img = rgb2gray(img)
 
   img = exposure.equalize_hist(img)
@@ -48,6 +59,23 @@ def preprocess_image(img):
 
   edges = feature.canny(img, sigma=canny_sigma)
   edges = edges.astype(np.float64) * 255
+  edges = edges.astype(np.uint8)
+
+  is_background = (edges == 0)
+  is_edge = (edges == 255)
+
+  edges_r = np.copy(edges)
+  edges_g = np.copy(edges)
+  edges_b = np.copy(edges)
+  edges_r[is_background] = color_r
+  edges_r[is_edge] = 0
+  edges_g[is_background] = color_g
+  edges_g[is_edge] = 0
+  edges_b[is_background] = color_b
+  edges_b[is_edge] = 0
+
+  edges = np.stack((edges_r, edges_g, edges_b), axis=2)
+
   edges = edges.astype(np.uint8)
 
   return edges
@@ -61,7 +89,6 @@ def generate_metadata(img, material_type):
   return metadata
 
 def split_image(img, width, height):
-
   height_counter = round(img.shape[0] / height)
   width_counter = round(img.shape[1] / width)
 
@@ -117,7 +144,6 @@ if __name__ == "__main__":
 
                 print("\t- Generating %s ..." % (output_img_path,))
                 temp_img_split = preprocess_image(input_img_split)
-
 
                 io.imsave(output_img_path, input_img_split, check_contrast=False)
                 io.imsave(edges_img_path, temp_img_split, check_contrast=False)
