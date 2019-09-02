@@ -12,8 +12,8 @@ from skimage.color import rgb2gray
 from skimage.transform import resize
 from skimage import exposure
 
-input_dir = "./data/original"
-output_dir = "./data/input"
+input_dir = "./notebooks/data/original"
+output_dir = "./notebooks/data/input"
 img_width = 512
 img_height = 512
 canny_sigma = 5
@@ -52,9 +52,12 @@ def preprocess_image(img):
 
   return edges
 
-def generate_metadata(img):
+def generate_metadata(img, material_type):
   metadata = {}
+
   metadata["bright"] = np.mean(img)
+  metadata["type"] = material_type
+
   return metadata
 
 def split_image(img, width, height):
@@ -87,36 +90,39 @@ def load_dictionary(filename):
 
 if __name__ == "__main__":
   for _, dirs, _ in os.walk(input_dir):
-    for subdir in dirs:
-      output_subdir = output_dir + "/" + subdir
-      input_subdir = input_dir + "/" + subdir
+    for material in dirs:
+      output_subdir = output_dir + "/" + material
+      material_subdir = input_dir + "/" + material
 
       if(os.path.isdir(output_subdir)):
         shutil.rmtree(output_subdir)
       os.mkdir(output_subdir)
 
-      for _, _, files in os.walk(input_subdir):
-        for file in files:
-          input_img_path = "/".join([input_subdir, file])
+      for _, type_subdirs, _ in os.walk(material_subdir):
+        for material_type in type_subdirs:
+          type_subdir = material_subdir + "/" + material_type
+          for _, _, files in os.walk(type_subdir):
+            for file in files:
+              input_img_path = "/".join([type_subdir, file])
 
-          print("Analyzing image: %s ..." % (input_img_path,))
+              print("Analyzing image: %s ..." % (input_img_path,))
 
-          input_img = rescale_image(io.imread(input_img_path), img_width, img_height)
+              input_img = rescale_image(io.imread(input_img_path), img_width, img_height)
 
-          for input_img_split in split_image(input_img, img_width, img_height):
-          
-            output_img_path = "/".join([output_subdir, "%.4d-image.png" % (img_counter,) ])
-            edges_img_path = "/".join([output_subdir, "%.4d-edges.png" % (img_counter,) ])
-            metadata_path = "/".join([output_subdir, "%.4d-meta.txt" % (img_counter,) ])
+              for input_img_split in split_image(input_img, img_width, img_height):
+              
+                output_img_path = "/".join([output_subdir, "%.4d-image.png" % (img_counter,) ])
+                edges_img_path = "/".join([output_subdir, "%.4d-edges.png" % (img_counter,) ])
+                metadata_path = "/".join([output_subdir, "%.4d-meta.txt" % (img_counter,) ])
 
-            print("\t- Generating %s ..." % (output_img_path,))
-            temp_img_split = preprocess_image(input_img_split)
+                print("\t- Generating %s ..." % (output_img_path,))
+                temp_img_split = preprocess_image(input_img_split)
 
 
-            io.imsave(output_img_path, input_img_split, check_contrast=False)
-            io.imsave(edges_img_path, temp_img_split, check_contrast=False)
+                io.imsave(output_img_path, input_img_split, check_contrast=False)
+                io.imsave(edges_img_path, temp_img_split, check_contrast=False)
 
-            metadata = generate_metadata(input_img_split)
-            save_dictionary(metadata_path, metadata)
+                metadata = generate_metadata(input_img_split, material_type)
+                save_dictionary(metadata_path, metadata)
 
-            img_counter += 1
+                img_counter += 1
