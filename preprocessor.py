@@ -75,7 +75,7 @@ thickness = args.thickness
 # Auxiliar functions
 
 def thicker_borders(img, thickness=1):
-  new_img = np.zeros(img.shape)
+  new_img = np.copy(img)
   orig_img = img
   for k in range(thickness):
     for i in range(1, orig_img.shape[0]):
