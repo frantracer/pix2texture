@@ -6,21 +6,87 @@ import numpy as np
 
 from PIL import Image
 
+import scipy
 from skimage import io
 from skimage import feature
 from skimage.color import rgb2gray
 from skimage.transform import resize
 from skimage import exposure
 
-input_dir = "./notebooks/data/original"
-output_dir = "./notebooks/data/input"
-img_width = 512
-img_height = 512
-canny_sigma = 5
-mean_color_background = True
-color_background = [255, 255, 255]
+import argparse
 
-img_counter = 0
+# Argument parsing
+
+parser = argparse.ArgumentParser(
+  description='Preprocess images to detect their edges',
+  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+parser.add_argument(
+  '--input-path', type=str, required=True,
+  default="./notebooks/data/original",
+  help='Path where input images are stored')
+parser.add_argument(
+  '--output-path', type=str, required=True,
+  default="./notebooks/data/input",
+  help='Path where generated images will be stored')
+parser.add_argument(
+  '--subdirs', type=str, nargs='+', required=True,
+  default=["wood"],
+  help='Subdirs in the input path to be processed')
+parser.add_argument(
+  '--img-width', type=int,
+  default=512,
+  help='Output image width')
+parser.add_argument(
+  '--img-height', type=int,
+  default=512,
+  help='Output image height')
+parser.add_argument(
+  '--canny-sigma', type=int,
+  default=5,
+  help='Canny sigma fro edge detection, the greater the least edge detected')
+parser.add_argument(
+  '--thickness', type=int,
+  default=4,
+  help='Thickness of the detected edges')
+parser.add_argument(
+  '--disable-mean-color-bg', action="store_true",
+  default=False,
+  help='Disable the calculation of the background color as the mean of the input')
+parser.add_argument(
+  '--color-bg', type=int, nargs='+',
+  default=[255, 255, 255],
+  help='RGB Background color in case mean background color is disabled')
+
+args = parser.parse_args()
+
+# Configuration
+
+input_dir = args.input_path
+output_dir = args.output_path
+materials = args.subdirs
+img_width = args.img_width
+img_height = args.img_height
+canny_sigma = args.canny_sigma
+mean_color_background = not args.disable_mean_color_bg
+color_background = args.color_bg
+thickness = args.thickness
+
+# Auxiliar functions
+
+def thicker_borders(img, thickness=1):
+  new_img = np.zeros(img.shape)
+  orig_img = img
+  for k in range(thickness):
+    for i in range(1, orig_img.shape[0]):
+      for j in range(1, orig_img.shape[1]):
+        if orig_img[i][j] == 255:
+          new_img[i][j] = 255
+          new_img[i-1][j] = 255
+          new_img[i][j-1] = 255
+          new_img[i-1][j-1] = 255
+    orig_img = new_img
+  return new_img
 
 def rescale_image(img, min_width, min_height):
   img_height = np.shape(img)[0]
@@ -60,6 +126,7 @@ def preprocess_image(img):
   edges = feature.canny(img, sigma=canny_sigma)
   edges = edges.astype(np.float64) * 255
   edges = edges.astype(np.uint8)
+  edges = thicker_borders(edges, thickness=thickness)
 
   is_background = (edges == 0)
   is_edge = (edges == 255)
@@ -115,40 +182,42 @@ def load_dictionary(filename):
   fd.close()
   return dictionary
 
+# MAIN
+
 if __name__ == "__main__":
-  for _, dirs, _ in os.walk(input_dir):
-    for material in dirs:
-      output_subdir = output_dir + "/" + material
-      material_subdir = input_dir + "/" + material
+  for material in materials:
+    output_subdir = output_dir + "/" + material
+    material_subdir = input_dir + "/" + material
 
-      if(os.path.isdir(output_subdir)):
-        shutil.rmtree(output_subdir)
-      os.mkdir(output_subdir)
+    if(os.path.isdir(output_subdir)):
+      shutil.rmtree(output_subdir)
+    os.mkdir(output_subdir)
 
-      for _, type_subdirs, _ in os.walk(material_subdir):
-        for material_type in type_subdirs:
-          type_subdir = material_subdir + "/" + material_type
-          for _, _, files in os.walk(type_subdir):
-            for file in files:
-              input_img_path = "/".join([type_subdir, file])
+    img_counter = 0
+    for _, type_subdirs, _ in os.walk(material_subdir):
+      for material_type in type_subdirs:
+        type_subdir = material_subdir + "/" + material_type
+        for _, _, files in os.walk(type_subdir):
+          for file in files:
+            input_img_path = "/".join([type_subdir, file])
 
-              print("Analyzing image: %s ..." % (input_img_path,))
+            print("Analyzing image: %s ..." % (input_img_path,))
 
-              input_img = rescale_image(io.imread(input_img_path), img_width, img_height)
+            input_img = rescale_image(io.imread(input_img_path), img_width, img_height)
 
-              for input_img_split in split_image(input_img, img_width, img_height):
-              
-                output_img_path = "/".join([output_subdir, "%.4d-image.png" % (img_counter,) ])
-                edges_img_path = "/".join([output_subdir, "%.4d-edges.png" % (img_counter,) ])
-                metadata_path = "/".join([output_subdir, "%.4d-meta.txt" % (img_counter,) ])
+            for input_img_split in split_image(input_img, img_width, img_height):
+            
+              output_img_path = "/".join([output_subdir, "%s_%.4d-image.png" % (material, img_counter,) ])
+              edges_img_path = "/".join([output_subdir, "%s_%.4d-edges.png" % (material, img_counter,) ])
+              metadata_path = "/".join([output_subdir, "%s_%.4d-meta.txt" % (material, img_counter,) ])
 
-                print("\t- Generating %s ..." % (output_img_path,))
-                temp_img_split = preprocess_image(input_img_split)
+              print("\t- Generating %s ..." % (output_img_path,))
+              temp_img_split = preprocess_image(input_img_split)
 
-                io.imsave(output_img_path, input_img_split, check_contrast=False)
-                io.imsave(edges_img_path, temp_img_split, check_contrast=False)
+              io.imsave(output_img_path, input_img_split, check_contrast=False)
+              io.imsave(edges_img_path, temp_img_split, check_contrast=False)
 
-                metadata = generate_metadata(input_img_split, material_type)
-                save_dictionary(metadata_path, metadata)
+              metadata = generate_metadata(input_img_split, material_type)
+              save_dictionary(metadata_path, metadata)
 
-                img_counter += 1
+              img_counter += 1
