@@ -42,6 +42,10 @@ parser.add_argument(
   default=512,
   help='Output image height')
 parser.add_argument(
+  '--force_rescaling', action="store_true",
+  default=False,
+  help='Rescale every image with the exactly input shape')
+parser.add_argument(
   '--canny-sigma', type=int,
   default=5,
   help='Canny sigma fro edge detection, the greater the least edge detected')
@@ -71,6 +75,7 @@ output_dir = args.output_path
 materials = args.subdirs
 img_width = args.img_width
 img_height = args.img_height
+force_rescaling = args.force_rescaling
 canny_sigma = args.canny_sigma
 mean_color_background = not args.disable_mean_color_bg
 color_background = args.color_bg
@@ -93,23 +98,26 @@ def thicker_borders(img, thickness=1):
     orig_img = new_img
   return new_img
 
-def rescale_image(img, min_width, min_height):
-  img_height = np.shape(img)[0]
-  img_width = np.shape(img)[1]
+def rescale_image(img, min_width, min_height, exact = False):
+  if exact: # Exact shape
+    img = (resize(img, (min_height, min_width), anti_aliasing=True) * 255).astype(np.uint8)
+  else: # Proportional scaling
+    img_height = np.shape(img)[0]
+    img_width = np.shape(img)[1]
 
-  desired_height = img_height
-  desired_width = img_width
+    desired_height = img_height
+    desired_width = img_width
 
-  if(desired_height < min_height):
-    desired_height = min_height
-    desired_width = round(min_height * img_width / img_height)
+    if(desired_height < min_height):
+      desired_height = min_height
+      desired_width = round(min_height * img_width / img_height)
 
-  if(desired_width < min_width):
-    desired_width = min_width
-    desired_height = round(min_width * img_height / img_width)
-  
-  if(img_height != desired_height or img_width != desired_width):
-    img = (resize(img, (desired_height, desired_width), anti_aliasing=True) * 255).astype(np.uint8)
+    if(desired_width < min_width):
+      desired_width = min_width
+      desired_height = round(min_width * img_height / img_width)
+    
+    if(img_height != desired_height or img_width != desired_width):
+      img = (resize(img, (desired_height, desired_width), anti_aliasing=True) * 255).astype(np.uint8)
 
   return img
 
@@ -208,7 +216,7 @@ if __name__ == "__main__":
 
             print("Analyzing image: %s ..." % (input_img_path,))
 
-            input_img = rescale_image(io.imread(input_img_path), img_width, img_height)
+            input_img = rescale_image(io.imread(input_img_path), img_width, img_height, force_rescaling)
 
             for input_img_split in split_image(input_img, img_width, img_height):
             
