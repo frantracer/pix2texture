@@ -42,7 +42,7 @@ parser.add_argument(
   default=512,
   help='Output image height')
 parser.add_argument(
-  '--force_rescaling', action="store_true",
+  '--force-rescaling', action="store_true",
   default=False,
   help='Rescale every image with the exactly input shape')
 parser.add_argument(
