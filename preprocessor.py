@@ -57,6 +57,10 @@ parser.add_argument(
   '--color-bg', type=int, nargs='+',
   default=[255, 255, 255],
   help='RGB Background color in case mean background color is disabled')
+parser.add_argument(
+  '--color-edges', type=int, nargs='+',
+  default=[0, 0, 0],
+  help='Color of the detected edges')
 
 args = parser.parse_args()
 
@@ -70,6 +74,7 @@ img_height = args.img_height
 canny_sigma = args.canny_sigma
 mean_color_background = not args.disable_mean_color_bg
 color_background = args.color_bg
+color_edges = args.color_edges
 thickness = args.thickness
 
 # Auxiliar functions
@@ -135,11 +140,11 @@ def preprocess_image(img):
   edges_g = np.copy(edges)
   edges_b = np.copy(edges)
   edges_r[is_background] = color_r
-  edges_r[is_edge] = 0
+  edges_r[is_edge] = color_edges[0]
   edges_g[is_background] = color_g
-  edges_g[is_edge] = 0
+  edges_g[is_edge] = color_edges[1]
   edges_b[is_background] = color_b
-  edges_b[is_edge] = 0
+  edges_b[is_edge] = color_edges[2]
 
   edges = np.stack((edges_r, edges_g, edges_b), axis=2)
 
