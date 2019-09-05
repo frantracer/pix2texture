@@ -76,7 +76,7 @@ Download the dataset from [here]() and place the "data" folder somewhere in your
 Just run the following command replacing the data directory with yours
 
 ```bash
-sudo docker run -it -u $(id -u):$(id -g) --runtime=nvidia -v /my/data/path:/tf/notebooks/data -p 8888:8888 --name pix2texture frantracer/pix2texture
+sudo docker run -it --runtime=nvidia -v /my/data/path:/tf/notebooks/data -p 8888:8888 --name pix2texture frantracer/pix2texture
 ```
 
 Copy the provided URL into your browser to launch jupyter notebooks.
@@ -84,7 +84,7 @@ Copy the provided URL into your browser to launch jupyter notebooks.
 In case you do not have GPU acceleration enabled for docker, check the appendix for further information about how to install it, or just run the following command:
 
 ```bash
-sudo docker run -it -u $(id -u):$(id -g) -v /my/data/path:/tf/notebooks/data -p 8888:8888 --name pix2texture frantracer/pix2texture
+sudo docker run -it -v /my/data/path:/tf/notebooks/data -p 8888:8888 --name pix2texture frantracer/pix2texture
 ```
 
 If you close the container or it stops, run the following command to restart it:
@@ -126,7 +126,7 @@ But in case you want to train with your dataset, you can execute all the cells w
 Or, in the bash you launched earlier, write:
 
 ```bash
-python3 main.py --input-path ./data/input/mydataset --output-path ./data/output/mydataset --checkpoints-path ./data/checkpoints/
+python3 main.py --input-path ./notebooks/data/input/mydataset --output-path ./notebooks/data/output/mydataset --checkpoints-path ./notebooks/checkpoints/
 ```
 
 Once the training is over it will generate a checkpoint that will be used in future trainings or evaluations, so do not forget to remove everything if you want a clean start.
@@ -142,7 +142,7 @@ EVALUATE_MODEL = True
 You can do the same as the training and run the evaluation within the bash:
 
 ```bash
-python3 main.py --input-path ./data/input/mydataset --output-path ./data/output/mydataset --checkpoints-path ./data/checkpoints/ --evaluate
+python3 main.py --input-path ./notebooks/data/input/mydataset --output-path ./notebooks/data/output/mydataset --checkpoints-path ./notebooks/checkpoints/ --evaluate
 ```
 
 Every file in the input directory will be evaluated and the prediction placed in the output directory.
