@@ -156,16 +156,17 @@ git clone frantracer/pix2texture
 cd pix2texture
 ```
 
-and build the full application:
+and run the application sharing the source code with the container:
 
 ```bash
-sudo docker build . -t pix2texture:latest
+sudo docker run -it -u $(id -u):$(id -g) --runtime=nvidia -v $(pwd):/tf -p 8888:8888 frantracer/tensorflow-2-gpu:cuda-10.1
 ```
 
-finally run the application sharing the source code with the container:
+To publish the docker image run:
 
 ```bash
-sudo docker run -it -u $(id -u):$(id -g) --runtime=nvidia -v $(pwd):/tf -p 8888:8888 pix2texture
+sudo docker build . -t frantracer/pix2texture:latest
+sudo docker push frantracer/pix2texture:latest
 ```
 
 Another useful command to generate python scripts from the notebook is:
