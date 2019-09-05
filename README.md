@@ -171,7 +171,7 @@ sudo docker run -it -u $(id -u):$(id -g) --runtime=nvidia -v $(pwd):/tf -p 8888:
 Another useful command to generate python scripts from the notebook is:
 
 ```bash
-jupyter nbconvert --to script main.ipynb --TagRemovePreprocessor.remove_cell_tags='{"info_cell"}' --no-prompt
+jupyter nbconvert --to script notebooks/main.ipynb --TagRemovePreprocessor.remove_cell_tags='{"info_cell"}' --no-prompt --output-dir .
 ```
 
 ## Future work
