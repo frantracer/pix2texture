@@ -27,12 +27,16 @@ parser.add_argument(
   help='Path where input images are stored')
 parser.add_argument(
   '--output-path', type=str, required=True,
-  default="./notebooks/data/input",
+  default="./notebooks/data/training/input",
   help='Path where generated images will be stored')
 parser.add_argument(
   '--subdirs', type=str, nargs='+', required=True,
   default=["wood"],
   help='Subdirs in the input path to be processed')
+parser.add_argument(
+  '--output-prefix', type=str,
+  default="",
+  help='Prefix of the generated images')
 parser.add_argument(
   '--img-width', type=int,
   default=512,
@@ -65,6 +69,10 @@ parser.add_argument(
   '--color-edges', type=int, nargs='+',
   default=[0, 0, 0],
   help='Color of the detected edges')
+parser.add_argument(
+  '--only-edges', action="store_true",
+  default=False,
+  help='Generate only edges files')
 
 args = parser.parse_args()
 
@@ -81,6 +89,8 @@ mean_color_background = not args.disable_mean_color_bg
 color_background = args.color_bg
 color_edges = args.color_edges
 thickness = args.thickness
+output_prefix = "" if (args.output_prefix == "") else "_" + args.output_prefix
+only_edges = args.only_edges
 
 # Auxiliar functions
 
@@ -202,9 +212,8 @@ if __name__ == "__main__":
     output_subdir = output_dir + "/" + material
     material_subdir = input_dir + "/" + material
 
-    if(os.path.isdir(output_subdir)):
-      shutil.rmtree(output_subdir)
-    os.mkdir(output_subdir)
+    if not os.path.exists(output_subdir):
+        os.makedirs(output_subdir)
 
     img_counter = 0
     for _, type_subdirs, _ in os.walk(material_subdir):
@@ -220,17 +229,19 @@ if __name__ == "__main__":
 
             for input_img_split in split_image(input_img, img_width, img_height):
             
-              output_img_path = "/".join([output_subdir, "%s_%.4d-image.png" % (material, img_counter,) ])
-              edges_img_path = "/".join([output_subdir, "%s_%.4d-edges.png" % (material, img_counter,) ])
-              metadata_path = "/".join([output_subdir, "%s_%.4d-meta.txt" % (material, img_counter,) ])
+              output_img_path = "/".join([output_subdir, "%s%s-%.4d-image.png" % (material, output_prefix, img_counter,) ])
+              edges_img_path = "/".join([output_subdir, "%s%s-%.4d-edges.png" % (material, output_prefix, img_counter,) ])
+              metadata_path = "/".join([output_subdir, "%s%s-%.4d-meta.txt" % (material, output_prefix, img_counter,) ])
 
               print("\t- Generating %s ..." % (output_img_path,))
               temp_img_split = preprocess_image(input_img_split)
 
-              io.imsave(output_img_path, input_img_split, check_contrast=False)
               io.imsave(edges_img_path, temp_img_split, check_contrast=False)
 
-              metadata = generate_metadata(input_img_split, material_type)
-              save_dictionary(metadata_path, metadata)
+              if not only_edges:
+                io.imsave(output_img_path, input_img_split, check_contrast=False)
+
+                metadata = generate_metadata(input_img_split, material_type)
+                save_dictionary(metadata_path, metadata)
 
               img_counter += 1
