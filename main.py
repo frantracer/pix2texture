@@ -30,10 +30,10 @@ parser.add_argument('--hide-plots', action="store_true",
                     help='Do not display plots of every image')
 parser.add_argument('--skip-training', action="store_true",
                     default=False,
-                    help='Evaluate the model instead of train')
+                    help='Skip training step')
 parser.add_argument('--skip-evaluation', action="store_true",
                     default=False,
-                    help='Evaluate the model instead of train')
+                    help='Skip evaluation step')
 parser.add_argument('-f')
 
 args = parser.parse_args()
