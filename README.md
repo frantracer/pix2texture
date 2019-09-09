@@ -9,7 +9,7 @@ The project pix2texture is a tool to generate realistic textures using as input 
 <table>
 <tr>
   <th scope="col">Input</th>
-  <th scope="col">Ouput</th>
+  <th scope="col">Output</th>
 </tr>
 <tr>
   <td><img src='images/dark_wood_input.png' width='200'/></th>
@@ -31,7 +31,7 @@ The project pix2texture is a tool to generate realistic textures using as input 
 <tr>
   <th scope="col">Original</th>
   <th scope="col">Input</th>
-  <th scope="col">Ouput</th>
+  <th scope="col">Output</th>
 </tr>
 <tr>
   <td><img src='images/face_original.png' width='200'/></th>
@@ -46,7 +46,7 @@ The project pix2texture is a tool to generate realistic textures using as input 
 <tr>
   <th scope="col">Original</th>
   <th scope="col">Input</th>
-  <th scope="col">Ouput</th>
+  <th scope="col">Output</th>
 </tr>
 <tr>
   <td><img src='images/logo_1_original.png' width='200'/></th>
@@ -106,7 +106,7 @@ sudo docker exec -it pix2texture /bin/bash
 Then you can run the preprocessor to generate a training set from a set of images. Place the images you want to convert in the "data/original/mydataset/myclass" directory and run the following command:
 
 ```bash
-python3 preprocessor.py --input-path ./notebooks/data/original --output-path ./notebooks/data/input --subdirs mydataset
+python3 preprocessor.py --input-path ./notebooks/data/original --output-path ./notebooks/data/training/input --subdirs mydataset
 ```
 
 **IMPORTANT** : Do not forget the "myclass" subdirectory, it is not used yet but it will be used for the cGAN
@@ -126,23 +126,19 @@ But in case you want to train with your dataset, you can execute all the cells w
 Or, in the bash you launched earlier, write:
 
 ```bash
-python3 main.py --input-path ./notebooks/data/input/mydataset --output-path ./notebooks/data/output/mydataset --checkpoints-path ./notebooks/checkpoints/
+python3 main.py --training-input ./notebooks/data/training/input/mydataset --training-output ./notebooks/data/training/output/mydataset --checkpoints-path ./notebooks/checkpoints/ --skip-evaluation
 ```
 
 Once the training is over it will generate a checkpoint that will be used in future trainings or evaluations, so do not forget to remove everything if you want a clean start.
 
 ### Evaluating
 
-In the configuration cell in the jupyter notebook set the following variable and run the whole notebook.
+In the notebook by default the evaluation step will be launched after the training is finished.
 
-```
-EVALUATE_MODEL = True
-```
-
-You can do the same as the training and run the evaluation within the bash:
+You can do the same as the training and launch only the evaluation step in the bash:
 
 ```bash
-python3 main.py --input-path ./notebooks/data/input/mydataset --output-path ./notebooks/data/output/mydataset --checkpoints-path ./notebooks/checkpoints/ --evaluate
+python3 main.py --evaluation-input ./notebooks/data/evaluation/input/other --evaluation-output ./notebooks/data/evaluation/output/other --checkpoints-path ./notebooks/checkpoints/ --skip-training
 ```
 
 Every file in the input directory will be evaluated and the prediction placed in the output directory.
