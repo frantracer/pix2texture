@@ -7,11 +7,17 @@ import tensorflow as tf
 import argparse
 
 parser = argparse.ArgumentParser(description='Train or execute model to generate texture from picture')
-parser.add_argument('--input-path', type=str,
-                    default="./data/input/wood",
-                    help='Path where input and target images are stored')
-parser.add_argument('--output-path', type=str,
-                    default="./data/output/wood",
+parser.add_argument('--training-input', type=str,
+                    default="./data/training/input/wood",
+                    help='Path where PNG input images with suffix "-edges.png" and "-image.png" for training are stored')
+parser.add_argument('--training-output', type=str,
+                    default="./data/training/output/wood",
+                    help='Path where generated testing images will be stored during training')
+parser.add_argument('--evaluation-input', type=str,
+                    default="./data/evaluation/input/wood",
+                    help='Path where PNG input images with suffix "-edges.png" and "-image.png" for evaluation are stored')
+parser.add_argument('--evaluation-output', type=str,
+                    default="./data/evaluation/output/wood",
                     help='Path where generated images will be stored')
 parser.add_argument('--checkpoints-path', type=str,
                     default="./checkpoints",
@@ -22,7 +28,10 @@ parser.add_argument('--epochs', type=int,
 parser.add_argument('--hide-plots', action="store_true",
                     default=False,
                     help='Do not display plots of every image')
-parser.add_argument('--evaluate', action="store_true",
+parser.add_argument('--skip-training', action="store_true",
+                    default=False,
+                    help='Evaluate the model instead of train')
+parser.add_argument('--skip-evaluation', action="store_true",
                     default=False,
                     help='Evaluate the model instead of train')
 parser.add_argument('-f')
@@ -32,22 +41,32 @@ args = parser.parse_args()
 
 # Configuration global variables
 
-INPUT_PATH = args.input_path
-OUTPUT_PATH = args.output_path
+TRAINING_INPUT_PATH = args.training_input
+TRAINING_OUTPUT_PATH = args.training_output
+EVALUATION_INPUT_PATH = args.evaluation_input
+EVALUATION_OUTPUT_PATH = args.evaluation_output
 CHECKPOINTS_PATH = args.checkpoints_path
 DISPLAY_PLOTS = not args.hide_plots
-EVALUATE_MODEL = args.evaluate
 EPOCHS = args.epochs
+RUN_TRAINING = not args.skip_training
+RUN_EVALUATION = not args.skip_evaluation
 
 
 import os
 
 # Create directories if needed
-if not os.path.exists(OUTPUT_PATH):
-    os.makedirs(OUTPUT_PATH)
+if RUN_TRAINING:
+
+    if not os.path.exists(TRAINING_OUTPUT_PATH):
+        os.makedirs(TRAINING_OUTPUT_PATH)
+
+    if not os.path.exists(CHECKPOINTS_PATH):
+        os.makedirs(CHECKPOINTS_PATH)
+        
+if RUN_EVALUATION:
     
-if not os.path.exists(CHECKPOINTS_PATH):
-    os.makedirs(CHECKPOINTS_PATH)
+    if not os.path.exists(EVALUATION_OUTPUT_PATH):
+        os.makedirs(EVALUATION_OUTPUT_PATH)
 
 
 # Auxiliar Functions
@@ -56,16 +75,20 @@ def normalize(image):
     image = (image / 127.5) - 1
     return image
 
-def load_image(id, load_target=True):
-    input_img = tf.cast(tf.image.decode_png(tf.io.read_file(INPUT_PATH + "/" + id + "-edges.png"), channels=3), tf.float32)
+def load_image_set(input_dir, id_str):
+    input_img = tf.cast(tf.image.decode_png(tf.io.read_file(input_dir + "/" + id_str + "-edges.png"), channels=3), tf.float32)
     input_img = normalize(input_img)
     
-    if load_target:
-        target_img = tf.cast(tf.image.decode_png(tf.io.read_file(INPUT_PATH + "/" + id + "-image.png"), channels=3), tf.float32)
-        target_img = normalize(target_img)
-        return input_img, target_img
-    else:
-        return input_img
+    target_img = tf.cast(tf.image.decode_png(tf.io.read_file(input_dir + "/" + id_str + "-image.png"), channels=3), tf.float32)
+    target_img = normalize(target_img)
+
+    return input_img, target_img
+
+def load_image_path(input_dir, filename):
+    input_img = tf.cast(tf.image.decode_png(tf.io.read_file(input_dir + "/" + filename), channels=3), tf.float32)
+    input_img = normalize(input_img)
+    
+    return input_img
 
 
 import numpy as np
@@ -74,48 +97,60 @@ import re
 
 # Main
 
-image_paths = glob.glob(INPUT_PATH + "/*edges*")
-image_filenames = list(map(lambda s: s.split("/")[-1], image_paths))
-data_size = len(image_paths)
+if RUN_TRAINING:
+    image_paths = glob.glob(TRAINING_INPUT_PATH + "/*-edges.png")
+    image_filenames = list(map(lambda s: s.split("/")[-1], image_paths))
+    data_size = len(image_paths)
 
-p = re.compile('(.+)-edges\.')
-ids = sorted(list(map(lambda s: p.search(s).group(1), image_filenames)))
+    p = re.compile('(.+)-edges\.png')
+    ids = sorted(list(map(lambda s: p.search(s).group(1), image_filenames)))
 
-train_size = round(data_size * 0.80)
+    image_size = load_image_set(TRAINING_INPUT_PATH, ids[0])[0].shape
+    
+    train_size = round(data_size * 0.80)
 
-ids_rand = np.copy(ids)
-np.random.shuffle(ids_rand)
+    np.random.shuffle(ids)
 
-train_ids = ids_rand[:train_size]
-test_ids = ids_rand[train_size:]
+    train_ids = ids[:train_size]
+    test_ids = ids[train_size:]
 
-train_tensors = list(map(lambda i: load_image(i), train_ids))
-test_tensors = list(map(lambda i: load_image(i), test_ids))
-eval_tensors = list(map(lambda i: load_image(i, load_target=False), ids))
+    train_tensors = list(map(lambda i: load_image_set(TRAINING_INPUT_PATH, i), train_ids))
+    test_tensors = list(map(lambda i: load_image_set(TRAINING_INPUT_PATH, i), test_ids))
+    
+if RUN_EVALUATION:
+    image_paths = sorted(glob.glob(EVALUATION_INPUT_PATH + "/*-edges.png"))
+    image_filenames = list(map(lambda s: s.split("/")[-1], image_paths))
+    
+    p = re.compile('(.+)-edges\.png')
+    ids = sorted(list(map(lambda s: p.search(s).group(1), image_filenames)))
 
-image_size = load_image(ids_rand[0])[0].shape
+    image_size = load_image_path(EVALUATION_INPUT_PATH, image_filenames[0]).shape
+
+    eval_tensors = list(map(lambda filename: load_image_path(EVALUATION_INPUT_PATH, filename), image_filenames))
 
 
-train_dataset = tf.data.Dataset.from_generator(
-    lambda: train_tensors,
-    output_types=(tf.float32, tf.float32),
-    output_shapes=(tf.TensorShape([None, None, 3]), tf.TensorShape([None, None, 3]))
-)
-train_dataset = train_dataset.batch(1)
+if RUN_TRAINING:
+    train_dataset = tf.data.Dataset.from_generator(
+        lambda: train_tensors,
+        output_types=(tf.float32, tf.float32),
+        output_shapes=(tf.TensorShape([None, None, 3]), tf.TensorShape([None, None, 3]))
+    )
+    train_dataset = train_dataset.batch(1)
 
-test_dataset = tf.data.Dataset.from_generator(
-    lambda: test_tensors,
-    output_types=(tf.float32, tf.float32),
-    output_shapes=(tf.TensorShape([None, None, 3]), tf.TensorShape([None, None, 3]))
-)
-test_dataset = test_dataset.batch(1)
+    test_dataset = tf.data.Dataset.from_generator(
+        lambda: test_tensors,
+        output_types=(tf.float32, tf.float32),
+        output_shapes=(tf.TensorShape([None, None, 3]), tf.TensorShape([None, None, 3]))
+    )
+    test_dataset = test_dataset.batch(1)
 
-eval_dataset = tf.data.Dataset.from_generator(
-    lambda: eval_tensors,
-    output_types=tf.float32,
-    output_shapes=tf.TensorShape([None, None, 3])
-)
-eval_dataset = eval_dataset.batch(1)
+if RUN_EVALUATION:
+    eval_dataset = tf.data.Dataset.from_generator(
+        lambda: eval_tensors,
+        output_types=tf.float32,
+        output_shapes=tf.TensorShape([None, None, 3])
+    )
+    eval_dataset = eval_dataset.batch(1)
 
 
 from tensorflow.keras import *
@@ -283,13 +318,12 @@ checkpoint_manager = tf.train.CheckpointManager(
     checkpoint, directory=CHECKPOINTS_PATH, max_to_keep=3)
 
 
-def generate_images(model, test_input, test_target, save_filename=False, display_imgs=True):
+def generate_images(model, test_input, test_target, save_filename_path="", display_imgs=True):
     prediction = model([test_input], training = False)
-    
-    if save_filename:
-        output_img_path = OUTPUT_PATH + '/' + save_filename + ".jpg"
+
+    if not save_filename_path == "":
         output_img_data = tf.cast((prediction[0, ...] * 0.5 + 0.5) * 255, tf.uint8)
-        tf.keras.preprocessing.image.save_img(output_img_path, output_img_data, scale=False)
+        tf.keras.preprocessing.image.save_img(save_filename_path, output_img_data, scale=False)
         
     if display_imgs:
         plt.figure(figsize=(10,10))
@@ -347,10 +381,9 @@ def train(dataset, epochs):
         
         clear_output(wait=True)
 
-        img_counter = 0
-        for input_image, target_image in test_dataset.take(5):
-            generate_images(generator, input_image, target_image, "%d_%d" % (img_counter, epoch), display_imgs=DISPLAY_PLOTS)
-            img_counter += 1
+        for (input_image, target_image), id_str in zip(test_dataset, test_ids):
+            output_path = "%s/%s_%d.jpg" % (TRAINING_OUTPUT_PATH, id_str, epoch)
+            generate_images(generator, input_image, target_image, save_filename_path=output_path, display_imgs=DISPLAY_PLOTS)
             
         if (epoch + 1) % 25 == 0 or epoch + 1 == epochs:
             checkpoint_manager.save()
@@ -360,20 +393,19 @@ def evaluate(dataset):
     
     if os.listdir(CHECKPOINTS_PATH):
         checkpoint.restore(checkpoint_manager.latest_checkpoint)
-
-    img_counter = 0
-    for test_input in dataset:
+    
+    for test_input, id_str in zip(dataset, ids):
         prediction = generator([test_input], training = True)
-        output_img_path = OUTPUT_PATH + "/prediction-%.4d.jpg" % (img_counter,)
+        output_img_path = EVALUATION_OUTPUT_PATH + "/%s-prediction.jpg" % (id_str,)
         output_img_data = tf.cast((prediction[0, ...] * 0.5 + 0.5) * 255, tf.uint8)
         tf.keras.preprocessing.image.save_img(output_img_path, output_img_data, scale=False)
-        img_counter += 1
 
 
-if EVALUATE_MODEL:
-    evaluate(eval_dataset)
-else:
+if RUN_TRAINING:
     train(train_dataset, EPOCHS)
+    
+if RUN_EVALUATION:
+    evaluate(eval_dataset)
 
 
 
