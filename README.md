@@ -69,7 +69,7 @@ The project pix2texture is a tool to generate realistic textures using as input 
 
 ### Dataset
 
-Download the dataset from [here]() and place the "data" folder somewhere in your computer.
+Download the dataset from [here](https://mega.nz/#!tckWmSAD!gu6xiASnKw6HFYcrNNDxSMBVyVPItmYCl63ZIwJG1Gk) and place the "data" folder somewhere in your computer.
 
 ### Installation
 
@@ -161,7 +161,7 @@ sudo docker run -it -u $(id -u):$(id -g) --runtime=nvidia -v $(pwd):/tf -p 8888:
 To publish the docker image run:
 
 ```bash
-sudo docker build . -t frantracer/pix2texture:latest
+sudo docker build . -t frantracer/pix2texture:latest --no-cache
 sudo docker push frantracer/pix2texture:latest
 ```
 
