@@ -319,7 +319,7 @@ checkpoint_manager = tf.train.CheckpointManager(
 
 
 def generate_images(model, test_input, test_target, save_filename_path="", display_imgs=True):
-    prediction = model([test_input], training = False)
+    prediction = model([test_input], training = True)
 
     if not save_filename_path == "":
         output_img_data = tf.cast((prediction[0, ...] * 0.5 + 0.5) * 255, tf.uint8)
