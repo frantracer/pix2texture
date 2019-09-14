@@ -5,7 +5,7 @@ WORKDIR /tf
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY notebooks/checkpoints ./notebooks/checkpoints/
+COPY notebooks/checkpoints_gan ./notebooks/checkpoints_gan
 COPY notebooks/*ipynb ./notebooks/
 COPY *py ./
 
