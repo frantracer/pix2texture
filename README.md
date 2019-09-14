@@ -63,7 +63,8 @@ The project pix2texture is a tool to generate realistic textures using as input 
 ## Requirements
 
 - Linux
-- Docker
+- Docker (>=19.03 required for GPU acceleration)
+- Nvidia drivers >=430 (required only for GPU acceleration)
 
 ## Getting Started
 
@@ -131,6 +132,8 @@ python3 main.py --training-input ./notebooks/data/training/input/mydataset --tra
 
 Once the training is over it will generate a checkpoint that will be used in future trainings or evaluations, so do not forget to remove everything if you want a clean start.
 
+**IMPORTANT** : Do not forget the suffixes "-image.png" (for target images) and "-edges.png" (for input images) of the image files
+
 ### Evaluating
 
 In the notebook by default the evaluation step will be launched after the training is finished.
@@ -155,7 +158,7 @@ cd pix2texture
 and run the application sharing the source code with the container:
 
 ```bash
-sudo docker run -it -u $(id -u):$(id -g) --runtime=nvidia -v $(pwd):/tf -p 8888:8888 frantracer/tensorflow-2-gpu:cuda-10.1
+sudo docker run -it -u $(id -u):$(id -g) --runtime=nvidia -v $(pwd):/tf -p 8888:8888 frantracer/pix2texture:latest
 ```
 
 To publish the docker image run:
@@ -170,6 +173,12 @@ Another useful command to generate python scripts from the notebook is:
 ```bash
 jupyter nbconvert --to script notebooks/main.ipynb --TagRemovePreprocessor.remove_cell_tags='{"info_cell"}' --no-prompt --output-dir .
 ```
+
+## Additional information
+
+Check [the video](https://www.youtube.com/watch?v=TtaUaKnfVQs) to know more about the project and what problems were solved during the development (only available in Spanish).
+
+The cGAN is still under development but there is another dataset prepared for it, you can download it from [here](https://mega.nz/#!AIcX0aTa!tRqX4SALB-MxMvYTITJ5Tkc3klyAtQEBxvVypHHz2QA).
 
 ## Future work
 
